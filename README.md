@@ -1,6 +1,21 @@
 # Refyn - Refine Your Prompts
 
-Refyn is a React + Express prompt refinement app. It turns rough user prompts into structured, model-ready prompts using the Gemini API, with a local fallback engine when the API key, quota, or network is unavailable.
+<p align="center">
+  <img src="public/logo.png" alt="Refyn logo" width="180" />
+</p>
+
+<p align="center">
+  <strong>Turn rough prompts into polished, model-ready instructions in seconds.</strong>
+</p>
+
+Refyn is a React + Express prompt refinement app that transforms raw ideas into structured, high-signal prompts using the Gemini API, with a resilient local fallback engine when the API key, quota, or network is unavailable.
+
+## Highlights
+
+- Lightning-fast prompt optimization with dynamic refinements
+- Clean sidebar history, examples, and theme aware UI
+- Built-in fallback synthesis for uninterrupted usage
+- Simple local development and production workflow
 
 ## Stack
 

@@ -22,7 +22,6 @@ export function PromptOptimizerMetric({
   isDark,
   isOfflineEngine = false,
 }: PromptOptimizerMetricProps) {
-  // Determine color theme based on score value
   const getScoreColor = (val: number) => {
     if (isDark) {
       if (val >= 80) return { text: "text-emerald-400", border: "border-emerald-500/20", bg: "bg-emerald-950/20", stroke: "#10b981" };

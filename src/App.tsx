@@ -1,5 +1,4 @@
-// @ts-ignore
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Sparkles, Code2, ImageIcon, FileText, Video, Briefcase, BookOpen, 
   Terminal, ArrowRight, Copy, Check, RefreshCw, AlertCircle, 
@@ -14,7 +13,6 @@ import { PromptHistoryItem, ExamplePrompt } from "./types";
 import { CATEGORIES, TARGET_MODELS, OUTPUT_FORMATS } from "./data";
 
 export default function App() {
-  // Local storage utilities
   const loadHistory = (): PromptHistoryItem[] => {
     try {
       const saved = localStorage.getItem("refyn_history_v1");
@@ -24,16 +22,13 @@ export default function App() {
     }
   };
 
-  // State Declarations
   const [history, setHistory] = useState<PromptHistoryItem[]>(loadHistory);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   
   const [rawPrompt, setRawPrompt] = useState("");
 
-  // Ref to cancel/manage active typing animation intervals
   const typingTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Safely clean up typing animation intervals on unmount
   useEffect(() => {
     return () => {
       if (typingTimerRef.current) {
@@ -50,7 +45,6 @@ export default function App() {
 
     setRawPrompt("");
     let currentIdx = 0;
-    // Fluid pacing: adjust speed based on length to keep typing snappier for longer text
     const speed = Math.max(8, Math.min(25, Math.floor(650 / text.length)));
 
     typingTimerRef.current = setInterval(() => {
@@ -79,7 +73,6 @@ export default function App() {
     return savedTheme !== "light";
   });
   
-  // Refined outputs state
   const [refinedPrompt, setRefinedPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [intent, setIntent] = useState("");
@@ -89,17 +82,15 @@ export default function App() {
   const [isOfflineEngine, setIsOfflineEngine] = useState(false);
   const [sources, setSources] = useState<{ title: string; uri: string }[]>([]);
   
-  // Clipboard copy animations
   const [isCopiedRefined, setIsCopiedRefined] = useState(false);
   const [isCopiedNegative, setIsCopiedNegative] = useState(false);
   
-  // Mobile sidebar visibility
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Spreading theme wave animation states
   const [rippleActive, setRippleActive] = useState(false);
   const [ripplePos, setRipplePos] = useState({ x: 0, y: 0 });
   const [rippleIsDark, setRippleIsDark] = useState(false);
+  const outputSectionRef = useRef<HTMLElement | null>(null);
 
   const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     const x = e.clientX || window.innerWidth / 2;
@@ -108,7 +99,6 @@ export default function App() {
     setRippleIsDark(!isDark);
     setRippleActive(true);
     
-    // Switch the theme state during the expansion to provide seamless flow
     setTimeout(() => {
       setIsDark(!isDark);
     }, 320);
@@ -118,7 +108,6 @@ export default function App() {
     }, 850);
   };
 
-  // Sync back to local storage
   useEffect(() => {
     try {
       localStorage.setItem("refyn_history_v1", JSON.stringify(history));
@@ -131,7 +120,13 @@ export default function App() {
     localStorage.setItem("refyn_theme_v1", isDark ? "dark" : "light");
   }, [isDark]);
 
-  // Handle refinement request
+  const focusOutputPanel = () => {
+    requestAnimationFrame(() => {
+      outputSectionRef.current?.focus({ preventScroll: true });
+      outputSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
   const handleRefine = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!rawPrompt.trim()) return;
@@ -170,7 +165,6 @@ export default function App() {
       const usedOffline = data.improvements?.some((imp: string) => imp.includes("Offline") || imp.includes("fallback") || imp.includes("Fallback")) || false;
       setIsOfflineEngine(usedOffline);
 
-      // Store in History
       const newItem: PromptHistoryItem = {
         id: Math.random().toString(36).substring(2, 9),
         rawPrompt: rawPrompt.trim(),
@@ -189,8 +183,8 @@ export default function App() {
 
       setHistory((prev) => [newItem, ...prev]);
       setSelectedHistoryId(newItem.id);
+      focusOutputPanel();
       
-      // Auto-set state category if server classified it differently
       if (data.category && CATEGORIES.some(cat => cat.id === data.category)) {
         setCategory(data.category);
       }
@@ -202,7 +196,6 @@ export default function App() {
     }
   };
 
-  // Select historic item
   const handleSelectHistory = (item: PromptHistoryItem) => {
     setSelectedHistoryId(item.id);
     setRawPrompt(item.rawPrompt);
@@ -218,11 +211,9 @@ export default function App() {
     setMissingSuggestions(item.missingSuggestions);
     setSources(item.sources || []);
     
-    // Close sidebar on mobile layout
     setIsSidebarOpen(false);
   };
 
-  // Delete historic item
   const handleDeleteHistory = (id: string) => {
     setHistory((prev) => prev.filter((item) => item.id !== id));
     if (selectedHistoryId === id) {
@@ -230,7 +221,6 @@ export default function App() {
     }
   };
 
-  // Clear all
   const handleClearAllHistory = () => {
     if (confirm("Are you sure you want to clear all prompt refinement history?")) {
       setHistory([]);
@@ -238,14 +228,12 @@ export default function App() {
     }
   };
 
-  // Load Example
   const handleLoadExample = (example: ExamplePrompt) => {
     simulateTyping(example.rawPrompt);
     setCategory(example.category);
     setTargetModel(example.targetModel);
     setFormat(example.format);
     
-    // Clear output ready for re-prompting or trigger right away
     setRefinedPrompt("");
     setNegativePrompt("");
     setIntent("");
@@ -256,14 +244,11 @@ export default function App() {
     setError(null);
     setIsOfflineEngine(false);
     
-    // Auto-scroll input to view
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setIsSidebarOpen(false);
   };
 
-  // Insert context suggestion criteria automatically
   const handleApplyMissing = (suggestion: string) => {
-    // Append context to prompt gracefully
     setRawPrompt((prev) => {
       const cleanPrev = prev.trim();
       const delimiter = cleanPrev.endsWith(".") || cleanPrev.endsWith("?") ? " " : ". ";
@@ -271,7 +256,6 @@ export default function App() {
     });
   };
 
-  // Copy trigger
   const copyToClipboard = async (text: string, type: "refined" | "negative") => {
     try {
       await navigator.clipboard.writeText(text);
@@ -289,7 +273,6 @@ export default function App() {
     }
   };
 
-  // Download Trigger
   const handleDownload = (formatType: "txt" | "md") => {
     let content = "";
     let filename = `refyn-${category || "prompt"}-${Date.now()}.${formatType}`;
@@ -466,7 +449,6 @@ export default function App() {
                       placeholder="Type or paste your raw prompt here... (e.g. 'write a python function to scrape a web site and save as csv')"
                       value={rawPrompt}
                       onChange={(e) => {
-                        // Cancel current typing interval if user interacts manually
                         if (typingTimerRef.current) {
                           clearInterval(typingTimerRef.current);
                           typingTimerRef.current = null;
@@ -504,7 +486,6 @@ export default function App() {
                           if (isGeneratingExample) return;
                           setIsGeneratingExample(true);
                           try {
-                            // Introduce Math.random() seed to prompt backend for extremely unique ideas every single click
                             const response = await fetch("/api/generate-raw-prompt", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
@@ -666,7 +647,12 @@ export default function App() {
           </section>
 
           {/* Right Column: Refined Outputs & Metrics */}
-          <section className="xl:col-span-6 space-y-6" id="output-rendered-section">
+          <section
+            ref={outputSectionRef}
+            tabIndex={-1}
+            className="xl:col-span-6 space-y-6 outline-none"
+            id="output-rendered-section"
+          >
             
             {error && (
               <div className={`p-4 border rounded-xl text-xs flex gap-2.5 items-start
@@ -815,7 +801,6 @@ export default function App() {
 
                 </div>
               ) : (
-                /* Beautiful Prompt Ready State Placeholder */
                 <div 
                   className={`rounded-2xl border border-dashed p-12 text-center flex flex-col items-center justify-center min-h-[460px] backdrop-blur-md transition-colors duration-300
                     ${isDark 

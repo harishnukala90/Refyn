@@ -35,16 +35,13 @@ export function Sidebar({
   const [catalysts, setCatalysts] = useState<ExamplePrompt[]>([]);
   const [fadeState, setFadeState] = useState(true);
 
-  // Periodic rotation of Example Catalysts
   useEffect(() => {
-    // Select 4 random examples initially or slice
     setCatalysts(EXAMPLE_PROMPTS.slice(0, 4));
 
     const interval = setInterval(() => {
       setFadeState(false);
       setTimeout(() => {
         setCatalysts(() => {
-          // Shuffle or select a random start index
           const maxStart = Math.max(0, EXAMPLE_PROMPTS.length - 4);
           const startIdx = Math.floor(Math.random() * (maxStart + 1));
           return EXAMPLE_PROMPTS.slice(startIdx, startIdx + 4);

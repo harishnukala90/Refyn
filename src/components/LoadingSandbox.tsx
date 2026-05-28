@@ -32,7 +32,6 @@ export function LoadingSandbox({ isDark }: LoadingSandboxProps) {
     "Syncing results securely via server-side proxies...",
   ];
 
-  // Progress bar ticker
   useEffect(() => {
     const timer = setInterval(() => {
       setProgress((prev) => {
@@ -44,7 +43,6 @@ export function LoadingSandbox({ isDark }: LoadingSandboxProps) {
     return () => clearInterval(timer);
   }, []);
 
-  // Step indicator switcher
   useEffect(() => {
     const stepTimer = setInterval(() => {
       setStep((prev) => {
@@ -56,7 +54,6 @@ export function LoadingSandbox({ isDark }: LoadingSandboxProps) {
     return () => clearInterval(stepTimer);
   }, [steps.length]);
 
-  // Terminal line printer simulation
   useEffect(() => {
     let lineIdx = 0;
     const logInterval = setInterval(() => {
@@ -64,7 +61,6 @@ export function LoadingSandbox({ isDark }: LoadingSandboxProps) {
         setTerminalLines((prev) => [...prev, simulationLogs[lineIdx]].slice(-5));
         lineIdx++;
       } else {
-        // Repeat random process logs when done
         const randomLogs = [
           `LINT >> Checking typescript token syntax...`,
           `ANALYSIS >> Intent variance minimized to <0.04`,

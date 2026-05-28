@@ -11,9 +11,7 @@ export const TypewriterPrompt: React.FC<TypewriterPromptProps> = ({ text, isDark
   const indexRef = useRef(0);
   const timerRef = useRef<number | null>(null);
 
-  // Reset and start typing when the original text changes
   useEffect(() => {
-    // Clear any active timers
     if (timerRef.current) {
       window.cancelAnimationFrame(timerRef.current);
       timerRef.current = null;
@@ -30,10 +28,7 @@ export const TypewriterPrompt: React.FC<TypewriterPromptProps> = ({ text, isDark
     indexRef.current = 0;
 
     const totalLength = text.length;
-    // Scale typing speed: typing more characters per frame for longer files
-    // so it always takes under 1.5 - 2 seconds to complete the animation
     const animate = () => {
-      // Minimum 1 character per frame, scaling up for lengthy text chunks
       const speed = Math.max(1, Math.ceil(totalLength / 180)); 
       
       if (indexRef.current < totalLength) {

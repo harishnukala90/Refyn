@@ -23,16 +23,15 @@ interface GroundingChunk {
   };
 }
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL_FALLBACKS = ["gemini-2.5-flash-lite", "gemini-2.0-flash", GEMINI_MODEL].filter((value, index, array) => value && array.indexOf(value) === index);
 
 app.use(express.json());
 
-// Initialize Gemini client lazily
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI {
   if (!aiClient) {
@@ -52,12 +51,49 @@ function getGeminiClient(): GoogleGenAI {
   return aiClient;
 }
 
-// API Routes
+function isTransientGeminiError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /503|high demand|temporar|overload|RESOURCE_EXHAUSTED|429|quota|rate limit/i.test(message);
+}
+
+async function generateWithModelFallback(payload: {
+  contents: string;
+  systemInstruction?: string;
+  temperature?: number;
+  responseMimeType?: string;
+  responseSchema?: unknown;
+}) {
+  const ai = getGeminiClient();
+  let lastError: unknown;
+
+  for (const model of GEMINI_MODEL_FALLBACKS) {
+    try {
+      return await ai.models.generateContent({
+        model,
+        contents: payload.contents,
+        config: {
+          systemInstruction: payload.systemInstruction,
+          temperature: payload.temperature,
+          responseMimeType: payload.responseMimeType,
+          responseSchema: payload.responseSchema,
+        },
+      });
+    } catch (error) {
+      lastError = error;
+      if (!isTransientGeminiError(error) || model === GEMINI_MODEL_FALLBACKS[GEMINI_MODEL_FALLBACKS.length - 1]) {
+        throw error;
+      }
+      console.warn(`[Refyn Server API] Gemini model ${model} hit a transient capacity issue. Retrying with a fallback model...`);
+    }
+  }
+
+  throw lastError ?? new Error("Gemini model fallback failed");
+}
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// Fallback pre-configured templates and arrays to guarantee high-performance responses when Gemini API quota runs out
 const FALLBACK_PROMPTS: Record<string, string[]> = {
   coding: [
     "write a python socket listener for real-time sensor streams",
@@ -142,7 +178,6 @@ function localFallbackRefine(rawPrompt: string, category: unknown, targetModel: 
     ? "Break down your thinking process and final output into a clear, chronological, step-by-step sequence."
     : "Deliver an incredibly exhaustive, multi-faceted guide with rich supplementary context, edge cases, and architectural best practices.";
 
-  // Pool of ultra-creative randomized expert personas based on category
   const personas: Record<string, string[]> = {
     coding: [
       "elite Staff Software Engineer and Domain Architect specializing in pristine type-safe microservices",
@@ -179,7 +214,6 @@ function localFallbackRefine(rawPrompt: string, category: unknown, targetModel: 
   const catPersonas = personas[catKey] || defaultPersonas;
   const chosenPersona = catPersonas[Math.floor(Math.random() * catPersonas.length)];
 
-  // Randomized dynamic constraint matrices to make each prompt uniquely customized
   const technicalSpecs = [
     "Inject rigorous telemetry hooks, performance profiling, or debugging logging standards.",
     "Enforce strict custom error-handling pipelines returning comprehensive diagnostic matrices.",
@@ -202,10 +236,8 @@ function localFallbackRefine(rawPrompt: string, category: unknown, targetModel: 
   ];
 
   const specsPool = catKey === "coding" ? technicalSpecs : catKey === "image generation" ? aestheticSpecs : writingSpecs;
-  // Choose 2 random specifications
   const selectedSpecs = [...specsPool].sort(() => 0.5 - Math.random()).slice(0, 2);
 
-  // Generate randomized improvements
   const generalImprovements = [
     `Assigned veteran "${chosenPersona}" persona to set professional execution standards`,
     "Strictly suppressed standard boilerplate introductions and conversational post-notes",
@@ -213,7 +245,6 @@ function localFallbackRefine(rawPrompt: string, category: unknown, targetModel: 
     "Aligned overall format specifically to conform to requested scope"
   ];
 
-  // Generate randomized suggestions
   const codeSuggestions = [
     "Specify if state or data persistence should use local secure layers (indexedDB/localStorage) or remote backend nodes.",
     "Are there strict execution speed boundaries or payload limits that we must align with?",
@@ -244,7 +275,6 @@ function localFallbackRefine(rawPrompt: string, category: unknown, targetModel: 
     negativePrompt = "blurry, generic textures, deformed dimensions, low contrast, text signatures, brand watermarks, extra limbs, extra fingers, plastic lighting, oversaturated shadows";
   }
 
-  // Generate a completely custom multi-bracketed refined prompt with dynamic variables
   refinedPrompt = `[Role & Persona Configuration]
 Act as an elite ${chosenPersona}. Maintain absolute professional focus, task-aligned precision, and authoritative domain-specific terminology.
 
@@ -284,7 +314,6 @@ Transform, complete, and refine the following human intention with flawless, pro
   };
 }
 
-// Prompt refinement endpoint
 app.post("/api/refine", async (req, res) => {
   const { rawPrompt, category, targetModel, format } = req.body as RefineRequestBody;
 
@@ -297,9 +326,6 @@ app.post("/api/refine", async (req, res) => {
   const requestedFormat = typeof format === "string" ? format : undefined;
 
   try {
-    const ai = getGeminiClient();
-
-    // Incorporate dynamic seeds and timestamp to guarantee distinct outputs every single execution
     const dynamicSeed = Math.random().toString(36).substring(2, 10);
     const timestamp = new Date().toISOString();
 
@@ -340,58 +366,54 @@ Follow these strict instructions:
 9. To guarantee each optimized prompt is truly unique and dynamic, do NOT use rigid cookie-cutter templates or formulaic outlines. Tailor the structure on the spot, injecting creative details, domain-specific terminologies, and custom scenario constraints.
 10. Leverage Google Search grounding via the googleSearch tool to locate the latest standard specifications, code libraries, trending patterns, document definitions, or domain standards relevant to the raw prompt topic. Always optimize prompts dynamically based on up-to-date information.`;
 
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
+    const response = await generateWithModelFallback({
       contents: userInstruction,
-      config: {
-        systemInstruction,
-        temperature: 0.95, // Increased temperature to maximize dynamic prompt variations
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            refinedPrompt: {
-              type: Type.STRING,
-              description: "The full refined, high-performance prompt. Ready to copy-paste. Must contain no wrapper commentary.",
-            },
-            negativePrompt: {
-              type: Type.STRING,
-              description: "The negative prompt of visual qualities, elements or attributes to exclude. Return empty string if not applicable or not image generation.",
-            },
-            category: {
-              type: Type.STRING,
-              description: "One of: coding, image generation, writing, video, business, research.",
-            },
-            intent: {
-              type: Type.STRING,
-              description: "A short, crystal-clear statement summarizing what the user is trying to accomplish.",
-            },
-            qualityScore: {
-              type: Type.INTEGER,
-              description: "The quality score of the raw prompt (0 to 100). Evaluate strictly based on completeness, ambiguity, lack of constraints, and context.",
-            },
-            missingSuggestions: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Up to 3 highly helpful questions or suggestions for specific missing details that could perfect the prompt.",
-            },
-            improvements: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "Up to 4 bullet points outlining key optimizations applied (e.g. 'Established senior developer role', 'Added styling system instructions').",
-            },
+      systemInstruction,
+      temperature: 0.95,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          refinedPrompt: {
+            type: Type.STRING,
+            description: "The full refined, high-performance prompt. Ready to copy-paste. Must contain no wrapper commentary.",
           },
-          required: [
-            "refinedPrompt",
-            "negativePrompt",
-            "category",
-            "intent",
-            "qualityScore",
-            "missingSuggestions",
-            "improvements",
-          ],
+          negativePrompt: {
+            type: Type.STRING,
+            description: "The negative prompt of visual qualities, elements or attributes to exclude. Return empty string if not applicable or not image generation.",
+          },
+          category: {
+            type: Type.STRING,
+            description: "One of: coding, image generation, writing, video, business, research.",
+          },
+          intent: {
+            type: Type.STRING,
+            description: "A short, crystal-clear statement summarizing what the user is trying to accomplish.",
+          },
+          qualityScore: {
+            type: Type.INTEGER,
+            description: "The quality score of the raw prompt (0 to 100). Evaluate strictly based on completeness, ambiguity, lack of constraints, and context.",
+          },
+          missingSuggestions: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "Up to 3 highly helpful questions or suggestions for specific missing details that could perfect the prompt.",
+          },
+          improvements: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "Up to 4 bullet points outlining key optimizations applied (e.g. 'Established senior developer role', 'Added styling system instructions').",
+          },
         },
+        required: [
+          "refinedPrompt",
+          "negativePrompt",
+          "category",
+          "intent",
+          "qualityScore",
+          "missingSuggestions",
+          "improvements",
+        ],
       },
     });
 
@@ -402,7 +424,6 @@ Follow these strict instructions:
 
     const data = JSON.parse(text.trim());
 
-    // Extract search grounding metadata sources if present
     const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
     const sources = groundingMetadata?.groundingChunks?.map((chunk: GroundingChunk) => ({
       title: chunk.web?.title || chunk.web?.uri,
@@ -414,8 +435,8 @@ Follow these strict instructions:
     res.json(data);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota") || errorMessage.includes("429")) {
-      console.warn("[Refyn Server API] Live Gemini API quota exceeded (429 rate limit). Falling back to local synthesis engine.");
+    if (isTransientGeminiError(error)) {
+      console.warn("[Refyn Server API] Live Gemini API demand spike or quota issue detected. Falling back to local synthesis engine.");
     } else {
       console.warn("[Refyn Server API] Live Gemini API call failed. Falling back to local synthesis engine. Reason:", errorMessage.slice(0, 150));
     }
@@ -432,13 +453,10 @@ Follow these strict instructions:
   }
 });
 
-// Endpoint to dynamically generate raw example prompts
 app.post("/api/generate-raw-prompt", async (req, res) => {
   const { category, seed } = req.body as GeneratePromptRequestBody;
   const requestedCategory = typeof category === "string" ? category : "general";
   try {
-    const ai = getGeminiClient();
-
     const systemInstruction = `You are a creative prompt assistant. Generate ONE highly realistic, slightly vague or short raw user input prompt representing something a human would ask an AI.
 Rules:
 1. Provide exactly one sentence or phrase (Max 15 words).
@@ -449,26 +467,22 @@ Rules:
 
     const randomSeedText = `Seed value: ${typeof seed === "string" || typeof seed === "number" ? seed : Math.random()}`;
 
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
+    const response = await generateWithModelFallback({
       contents: `Generate a completely unique and specific raw messy prompt for category: "${requestedCategory}" with the unique ${randomSeedText}. Ensure it represents a complex or interesting modern technical or creative project.`,
-      config: {
-        systemInstruction,
-        temperature: 0.98, // Extreme temperature to force highly dynamic examples
-      },
+      systemInstruction,
+      temperature: 0.98,
     });
 
     let promptText = response.text ? response.text.trim() : "";
     if (!promptText) {
       throw new Error("Empty example prompt generated");
     }
-    // Strip surrounding quotes
     promptText = promptText.replace(/^["'`]|["'`]$/g, "");
     res.json({ rawPrompt: promptText });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota") || errorMessage.includes("429")) {
-      console.warn("[Refyn Server API] Live Gemini API quota exceeded (429 rate limit) for examples. Falling back to curated dynamic catalog.");
+    if (isTransientGeminiError(error)) {
+      console.warn("[Refyn Server API] Live Gemini API demand spike or quota issue detected for examples. Falling back to curated dynamic catalog.");
     } else {
       console.warn("[Refyn Server API] Live Gemini API call for examples failed. Falling back to curated catalog. Reason:", errorMessage.slice(0, 150));
     }
@@ -481,7 +495,6 @@ Rules:
   }
 });
 
-// Vite & Static Asset Handling
 async function initializeServer() {
   if (process.env.NODE_ENV !== "production") {
     console.log("Starting in DEVELOPMENT mode, mounting Vite middleware...");
