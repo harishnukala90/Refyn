@@ -1,0 +1,8 @@
+{
+  "name": "Refyn",
+  "description": "Refyn is an AI prompt refinement platform to transform raw human inputs into polished, high-performance AI-ready prompts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
