@@ -10,6 +10,20 @@
 
 Refyn is a React + Express prompt refinement app that transforms raw ideas into structured, high-signal prompts using the Gemini API, with a resilient local fallback engine when the API key, quota, or network is unavailable.
 
+## Live Demo
+
+<p align="center">
+  <a href="https://refyn-production-e6c9.up.railway.app" target="_blank" rel="noopener noreferrer">
+    <strong>🚀 Open Live Demo</strong>
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://refyn-production-e6c9.up.railway.app" alt="QR Code for Refyn Production" width="200" />
+</p>
+
+Production URL: `https://refyn-production-e6c9.up.railway.app`
+
 ## Highlights
 
 - Lightning-fast prompt optimization with dynamic refinements
