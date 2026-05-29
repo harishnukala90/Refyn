@@ -28,7 +28,10 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const GEMINI_MODEL_FALLBACKS = ["gemini-2.5-flash-lite", "gemini-2.0-flash", GEMINI_MODEL].filter((value, index, array) => value && array.indexOf(value) === index);
+
+const GEMINI_MODEL_FALLBACKS = [
+  "gemini-2.5-flash",
+];
 
 app.use(express.json());
 
@@ -53,7 +56,12 @@ function getGeminiClient(): GoogleGenAI {
 
 function isTransientGeminiError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return /503|high demand|temporar|overload|RESOURCE_EXHAUSTED|429|quota|rate limit/i.test(message);
+
+  console.error("Gemini Raw Error:", message);
+
+  return /503|429|RESOURCE_EXHAUSTED|quota|rate limit|overload|temporar|high demand/i.test(
+    message
+  );
 }
 
 async function generateWithModelFallback(payload: {
@@ -79,11 +87,20 @@ async function generateWithModelFallback(payload: {
         },
       });
     } catch (error) {
+      console.error("FULL GEMINI ERROR:", error);
+
       lastError = error;
-      if (!isTransientGeminiError(error) || model === GEMINI_MODEL_FALLBACKS[GEMINI_MODEL_FALLBACKS.length - 1]) {
+
+      if (
+        !isTransientGeminiError(error) ||
+        model === GEMINI_MODEL_FALLBACKS[GEMINI_MODEL_FALLBACKS.length - 1]
+      ) {
         throw error;
       }
-      console.warn(`[Refyn Server API] Gemini model ${model} hit a transient capacity issue. Retrying with a fallback model...`);
+
+      console.warn(
+        `[Refyn Server API] Gemini model ${model} hit a transient capacity issue. Retrying with a fallback model...`
+      );
     }
   }
 

@@ -131,6 +131,9 @@ export default function App() {
     if (e) e.preventDefault();
     if (!rawPrompt.trim()) return;
 
+    // Scroll to output panel immediately
+    focusOutputPanel();
+    
     setIsLoading(true);
     setError(null);
     setIsOfflineEngine(false);
@@ -183,7 +186,6 @@ export default function App() {
 
       setHistory((prev) => [newItem, ...prev]);
       setSelectedHistoryId(newItem.id);
-      focusOutputPanel();
       
       if (data.category && CATEGORIES.some(cat => cat.id === data.category)) {
         setCategory(data.category);
