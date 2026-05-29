@@ -90,6 +90,7 @@ export default function App() {
   const [rippleActive, setRippleActive] = useState(false);
   const [ripplePos, setRipplePos] = useState({ x: 0, y: 0 });
   const [rippleIsDark, setRippleIsDark] = useState(false);
+  const [shimmerActive, setShimmerActive] = useState(false);
   const outputSectionRef = useRef<HTMLElement | null>(null);
 
   const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -98,14 +99,22 @@ export default function App() {
     setRipplePos({ x, y });
     setRippleIsDark(!isDark);
     setRippleActive(true);
+    setShimmerActive(true);
     
+    // Color transition starts immediately
     setTimeout(() => {
       setIsDark(!isDark);
-    }, 320);
+    }, 280);
 
+    // Shimmer completes before ripple fades
+    setTimeout(() => {
+      setShimmerActive(false);
+    }, 700);
+
+    // Final cleanup
     setTimeout(() => {
       setRippleActive(false);
-    }, 850);
+    }, 900);
   };
 
   useEffect(() => {
@@ -333,29 +342,31 @@ export default function App() {
       }`} />
       
       {/* Brand Sidebar */}
-      <Sidebar
-        history={history}
-        selectedHistoryId={selectedHistoryId}
-        onSelectHistory={handleSelectHistory}
-        onDeleteHistory={handleDeleteHistory}
-        onClearAllHistory={handleClearAllHistory}
-        onLoadExample={handleLoadExample}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        isDark={isDark}
-        isLoading={isLoading}
-      />
+      <div className={`transition-opacity duration-300 ${rippleActive ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+        <Sidebar
+          history={history}
+          selectedHistoryId={selectedHistoryId}
+          onSelectHistory={handleSelectHistory}
+          onDeleteHistory={handleDeleteHistory}
+          onClearAllHistory={handleClearAllHistory}
+          onLoadExample={handleLoadExample}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          isDark={isDark}
+          isLoading={isLoading}
+        />
+      </div>
 
       {/* Main Workspace Frame */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto relative z-10" id="main-workspace-frame">
+      <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-y-auto relative z-10 transition-opacity duration-300 ${rippleActive ? "opacity-0 pointer-events-none" : "opacity-100"}`} id="main-workspace-frame">
         
         {/* Workspace Top Navigation Bar */}
         <header className={`sticky top-0 z-30 backdrop-blur-md px-4 py-4 lg:px-8 flex items-center justify-between border-b transition-colors duration-300
           ${isDark 
             ? "bg-black/30 border-sky-950/40" 
             : "bg-white/35 border-sky-100/60"
-          }`}>
-          <div className="flex items-center gap-3">
+          } ${rippleActive ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+          <div className={`flex items-center gap-3 transition-opacity duration-300 ${rippleActive ? "opacity-0" : "opacity-100"}`}>
             {/* Mobile Toggle Drawer */}
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -385,7 +396,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 transition-opacity duration-300 ${rippleActive ? "opacity-0" : "opacity-100"}`}>
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -847,19 +858,126 @@ export default function App() {
         </main>
       </div>
 
+      {/* Fixed Theme Button Overlay During Transition */}
+      {rippleActive && (
+        <motion.button
+          key="fixed-theme-button"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          onClick={toggleTheme}
+          type="button"
+          className={`fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[4] p-3 rounded-lg border flex items-center justify-center transition-all cursor-pointer shadow-lg
+            ${rippleIsDark 
+              ? "border-sky-950/40 bg-black/60 text-sky-300 hover:text-white hover:bg-sky-950/35" 
+              : "border-sky-200 bg-white text-sky-700 hover:text-sky-950 hover:bg-sky-50"
+            }`}
+          title={rippleIsDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {rippleIsDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+        </motion.button>
+      )}
+
       {/* Spreading Theme Circle Ripple Overlay */}
       {rippleActive && (
-        <motion.div
-          key="theme-ripple-wave"
-          initial={{ clipPath: `circle(0px at ${ripplePos.x}px ${ripplePos.y}px)` }}
-          animate={{ clipPath: `circle(150% at ${ripplePos.x}px ${ripplePos.y}px)` }}
-          transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
-          className={`fixed inset-0 z-[1] pointer-events-none ${
-            rippleIsDark
-              ? "bg-[#02040a] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-black via-[#040c1a] to-black"
-              : "bg-[#f3fafc] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-100/40 via-white to-[#f0f9ff]"
-          }`}
-        />
+        <>
+          {/* Main Ripple Wave */}
+          <motion.div
+            key="theme-ripple-wave"
+            initial={{ clipPath: `circle(0px at ${ripplePos.x}px ${ripplePos.y}px)` }}
+            animate={{ clipPath: `circle(150% at ${ripplePos.x}px ${ripplePos.y}px)` }}
+            transition={{ duration: 0.75, ease: [0.34, 1.56, 0.64, 1] }}
+            className={`fixed inset-0 z-[1] pointer-events-none ${
+              rippleIsDark
+                ? "bg-[#02040a] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-black via-[#040c1a] to-black"
+                : "bg-[#f3fafc] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-100/40 via-white to-[#f0f9ff]"
+            }`}
+          />
+
+          {/* Inner Glow Layer */}
+          <motion.div
+            key="theme-glow-inner"
+            initial={{ 
+              clipPath: `circle(0px at ${ripplePos.x}px ${ripplePos.y}px)`,
+              opacity: 0
+            }}
+            animate={{ 
+              clipPath: `circle(150% at ${ripplePos.x}px ${ripplePos.y}px)`,
+              opacity: 1
+            }}
+            transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1], delay: 0.05 }}
+            className={`fixed inset-0 z-[0] pointer-events-none mix-blend-screen
+              ${rippleIsDark
+                ? "bg-gradient-to-br from-sky-900/20 via-transparent to-transparent"
+                : "bg-gradient-to-br from-sky-300/20 via-transparent to-transparent"
+              }`}
+          />
+
+          {/* Shimmer Effect */}
+          {shimmerActive && (
+            <motion.div
+              key="theme-shimmer"
+              initial={{ 
+                x: ripplePos.x - window.innerWidth,
+                opacity: 0
+              }}
+              animate={{ 
+                x: ripplePos.x + window.innerWidth,
+                opacity: 1
+              }}
+              transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1], delay: 0.1 }}
+              className="fixed inset-0 z-[2] pointer-events-none"
+              style={{
+                background: `linear-gradient(90deg, 
+                  transparent 0%, 
+                  ${rippleIsDark ? 'rgba(255,255,255,0.08)' : 'rgba(14,165,233,0.1)'} 50%, 
+                  transparent 100%)`,
+                width: "200px",
+              }}
+            />
+          )}
+
+          {/* Centered Theme Transition Text */}
+          <motion.div
+            key="theme-text-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="fixed inset-0 z-[3] flex items-center justify-center pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.4, delay: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                className={`text-center`}
+              >
+                <h2 className={`text-4xl md:text-5xl font-bold tracking-tight mb-3 ${
+                  rippleIsDark ? "text-white" : "text-sky-950"
+                }`}>
+                  Applying Theme
+                </h2>
+                <p className={`text-sm md:text-base font-medium ${
+                  rippleIsDark ? "text-gray-300" : "text-sky-700"
+                }`}>
+                  Transforming your experience...
+                </p>
+              </motion.div>
+
+              {/* Loading Indicator */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className={`w-12 h-12 rounded-full border-2 ${
+                  rippleIsDark 
+                    ? "border-sky-900 border-t-sky-400" 
+                    : "border-sky-200 border-t-sky-600"
+                }`}
+              />
+            </div>
+          </motion.div>
+        </>
       )}
 
     </div>

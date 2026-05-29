@@ -34,6 +34,16 @@ export function Sidebar({
   const [searchHistory, setSearchHistory] = useState("");
   const [catalysts, setCatalysts] = useState<ExamplePrompt[]>([]);
   const [fadeState, setFadeState] = useState(true);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 1024);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     setCatalysts(EXAMPLE_PROMPTS.slice(0, 4));
@@ -108,7 +118,7 @@ export function Sidebar({
         ${isDark 
           ? "glass-fluid-dark text-gray-100" 
           : "glass-fluid-light text-sky-950"
-        }`}
+        } ${isMobileView ? "mobile-glass" : ""}`}
       id="app-sidebar"
     >
       {/* Brand Header */}

@@ -74,3 +74,130 @@ body {
   box-shadow: 0 8px 32px 0 rgba(14, 165, 233, 0.04);
 }
 
+/* Mobile liquid glass blur - enhanced for small screens */
+.glass-fluid-mobile-dark {
+  background: rgba(4, 12, 26, 0.55);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-fluid-mobile-light {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(30px) saturate(210%);
+  -webkit-backdrop-filter: blur(30px) saturate(210%);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  box-shadow: 0 12px 48px 0 rgba(14, 165, 233, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Apply mobile glass effect on screens below lg breakpoint */
+@media (max-width: 1023px) {
+  .glass-fluid-dark.mobile-glass {
+    background: rgba(4, 12, 26, 0.55);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-fluid-light.mobile-glass {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(30px) saturate(210%);
+    -webkit-backdrop-filter: blur(30px) saturate(210%);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    box-shadow: 0 12px 48px 0 rgba(14, 165, 233, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Theme Transition Animations */
+@keyframes themeTransitionGlow {
+  0% {
+    opacity: 0;
+    filter: blur(0px) brightness(1);
+  }
+  35% {
+    opacity: 1;
+    filter: blur(2px) brightness(1.1);
+  }
+  65% {
+    opacity: 1;
+    filter: blur(2px) brightness(1.08);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(0px) brightness(1);
+  }
+}
+
+@keyframes shimmerWave {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes colorWash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0;
+    box-shadow: 0 0 0px rgba(14, 165, 233, 0);
+  }
+  50% {
+    opacity: 0.3;
+    box-shadow: 0 0 30px rgba(14, 165, 233, 0.2);
+  }
+}
+
+/* Smooth color transition classes */
+#refyn-app-root {
+  transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+header {
+  transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ensure all transition-enabled elements animate smoothly */
+[class*="transition-colors"] {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.7s;
+}
+
+[class*="transition-all"] {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.7s;
+}
+
