@@ -17,7 +17,15 @@ interface SidebarProps {
   onClose: () => void;
   isDark: boolean;
   isLoading?: boolean;
+  rippleActive?: boolean;
 }
+
+const LOCALES = {
+  historyTitle: "History",
+  exampleCatalysts: "Example Catalysts",
+  platformState: "Platform State: Dynamic",
+  modelVersion: "Model Version: Gemini 3.5 Flash",
+};
 
 export function Sidebar({
   history,
@@ -30,6 +38,7 @@ export function Sidebar({
   onClose,
   isDark,
   isLoading = false,
+  rippleActive = false,
 }: SidebarProps) {
   const [searchHistory, setSearchHistory] = useState("");
   const [catalysts, setCatalysts] = useState<ExamplePrompt[]>([]);
@@ -118,7 +127,8 @@ export function Sidebar({
         ${isDark 
           ? "glass-fluid-dark text-gray-100" 
           : "glass-fluid-light text-sky-950"
-        } ${isMobileView ? "mobile-glass" : ""}`}
+        } ${isMobileView ? "mobile-glass" : ""}
+        ${rippleActive ? "opacity-0 pointer-events-none" : "opacity-100"}`}
       id="app-sidebar"
     >
       {/* Brand Header */}
@@ -157,7 +167,7 @@ export function Sidebar({
           <div className="flex items-center justify-between px-1">
             <div className={`flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase ${isDark ? "text-sky-400" : "text-sky-700"}`}>
               <History className="w-3.5 h-3.5" />
-              <span>History ({history.length})</span>
+              <span>{LOCALES.historyTitle} ({history.length})</span>
             </div>
             {history.length > 0 && (
               <button 
@@ -258,7 +268,7 @@ export function Sidebar({
           <div className="flex items-center justify-between px-1">
             <div className={`flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase ${isDark ? "text-sky-400" : "text-sky-700"}`}>
               <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-              <span>Example Catalysts</span>
+              <span>{LOCALES.exampleCatalysts}</span>
             </div>
             <button 
               onClick={triggerManualCatalystCycle}
@@ -302,10 +312,10 @@ export function Sidebar({
       </div>
 
       {/* Footer Info */}
-      <div className={`p-4 border-t flex flex-col gap-1 text-[11px] font-mono text-center
-        ${isDark ? "border-sky-900 bg-black text-gray-500" : "border-sky-100 bg-sky-50 text-sky-600/70"}`}>
-        <span>Platform State: Dynamic</span>
-        <span>Model Version: Gemini 3.5 Flash</span>
+      <div className={`p-4 border-t flex flex-col gap-1 text-[11px] font-mono text-center transition-colors duration-300
+        ${isDark ? "border-sky-900/40 bg-black/40 text-gray-500" : "border-sky-100/60 bg-sky-50/40 text-sky-600/70"}`}>
+        <span>{LOCALES.platformState}</span>
+        <span>{LOCALES.modelVersion}</span>
       </div>
     </div>
   );

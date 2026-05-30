@@ -341,21 +341,29 @@ export default function App() {
           : "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-sky-100/40 via-white to-[#f0f9ff] opacity-100"
       }`} />
       
-      {/* Brand Sidebar */}
-      <div className={`transition-opacity duration-300 ${rippleActive ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-        <Sidebar
-          history={history}
-          selectedHistoryId={selectedHistoryId}
-          onSelectHistory={handleSelectHistory}
-          onDeleteHistory={handleDeleteHistory}
-          onClearAllHistory={handleClearAllHistory}
-          onLoadExample={handleLoadExample}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          isDark={isDark}
-          isLoading={isLoading}
+      {/* Mobile Drawer Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-30 lg:hidden bg-black/45 backdrop-blur-[6px] cursor-pointer transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+          aria-hidden="true"
         />
-      </div>
+      )}
+
+      {/* Brand Sidebar */}
+      <Sidebar
+        history={history}
+        selectedHistoryId={selectedHistoryId}
+        onSelectHistory={handleSelectHistory}
+        onDeleteHistory={handleDeleteHistory}
+        onClearAllHistory={handleClearAllHistory}
+        onLoadExample={handleLoadExample}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        isDark={isDark}
+        isLoading={isLoading}
+        rippleActive={rippleActive}
+      />
 
       {/* Main Workspace Frame */}
       <div className={`flex-1 flex flex-col min-w-0 h-screen overflow-y-auto relative z-10 transition-opacity duration-300 ${rippleActive ? "opacity-0 pointer-events-none" : "opacity-100"}`} id="main-workspace-frame">
